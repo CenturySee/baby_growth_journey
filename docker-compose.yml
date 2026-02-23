@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: baby_growth_journey
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    # Uncomment to use HTTPS via a reverse proxy like Nginx Proxy Manager or Traefik
+    # environment:
+    #   - VIRTUAL_HOST=your-domain.com
