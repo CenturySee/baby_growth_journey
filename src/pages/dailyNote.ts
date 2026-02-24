@@ -1,14 +1,14 @@
-import { db, type DailyNote } from '../db';
+import { dailyNote } from '../api';
 import { getToday, showToast, getApp, renderPageHeader } from '../utils';
 
 export async function renderDailyNote() {
-    const app = getApp();
-    const today = getToday();
+  const app = getApp();
+  const today = getToday();
 
-    // Load existing
-    const existing = await db.dailyNote.where('date').equals(today).first();
+  // Load existing
+  const existing = await dailyNote.get(today);
 
-    app.innerHTML = `
+  app.innerHTML = `
     ${renderPageHeader('今日小记', '📝')}
 
     <div class="card">
@@ -31,21 +31,14 @@ export async function renderDailyNote() {
     </div>
   `;
 
-    // Save
-    document.getElementById('saveBtn')?.addEventListener('click', async () => {
-        const data = {
-            date: today,
-            temperature: Number((document.getElementById('temperature') as HTMLInputElement).value) || 36.5,
-            vaccine: (document.getElementById('vaccine') as HTMLInputElement).value,
-            note: (document.getElementById('noteText') as HTMLTextAreaElement).value,
-            createdAt: Date.now(),
-        };
-
-        if (existing) {
-            await db.dailyNote.update(existing.id!, data);
-        } else {
-            await db.dailyNote.add(data as DailyNote);
-        }
-        showToast('小记已保存 ✅');
+  // Save
+  document.getElementById('saveBtn')?.addEventListener('click', async () => {
+    await dailyNote.save({
+      date: today,
+      temperature: Number((document.getElementById('temperature') as HTMLInputElement).value) || 36.5,
+      vaccine: (document.getElementById('vaccine') as HTMLInputElement).value,
+      note: (document.getElementById('noteText') as HTMLTextAreaElement).value,
     });
+    showToast('小记已保存 ✅');
+  });
 }

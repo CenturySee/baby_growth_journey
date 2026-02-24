@@ -1,4 +1,5 @@
-import { db, getDayStats, getSetting, exportAllData, importAllData } from '../db';
+import { feeding, diaper, sleep, education, dailyNote, getDayStats, getSetting, setSetting, exportAllData, importAllData, clearFamilyCode, getFamilyCode } from '../api';
+
 import { getToday, isToday, addDays, daysBetween, showToast, getApp } from '../utils';
 import { navigate } from '../router';
 
@@ -12,9 +13,12 @@ export async function renderHome() {
   currentDate = getToday();
   const app = getApp();
   const birthDate = await getSetting('birthDate');
+  const familyCode = getFamilyCode() || '未设置';
 
   app.innerHTML = `
     <h1>👶 宝宝成长记录</h1>
+
+    <div class="family-code-bar">🏠 家庭码: <strong>${familyCode}</strong> <button class="settings-link" id="logoutBtn">切换</button></div>
 
     ${birthDate ? (daysBetween(birthDate, currentDate) >= 0 ? `<div class="day-label">宝宝第 <strong>${daysBetween(birthDate, currentDate) + 1}</strong> 天</div>` : `<div class="day-label">⚠️ 所选日期早于出生日期 (${birthDate})</div>`) : ''}
 
@@ -110,10 +114,17 @@ function bindEvents() {
     const current = await getSetting('birthDate') || '';
     const val = prompt('请输入宝宝出生日期 (YYYY-MM-DD):', current);
     if (val) {
-      const { setSetting } = await import('../db');
       await setSetting('birthDate', val);
       showToast('出生日期已保存');
       renderHome();
+    }
+  });
+
+  // Logout
+  document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    if (confirm('确认切换家庭码？')) {
+      clearFamilyCode();
+      navigate('/login');
     }
   });
 
@@ -135,22 +146,24 @@ function bindEvents() {
   });
 
   // Import
+  const importFile = document.getElementById('importFile') as HTMLInputElement;
   document.getElementById('importBtn')?.addEventListener('click', () => {
-    document.getElementById('importFile')?.click();
+    importFile.click();
   });
 
-  document.getElementById('importFile')?.addEventListener('change', async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
+  importFile?.addEventListener('change', async () => {
+    const file = importFile.files?.[0];
     if (!file) return;
-    if (!confirm('导入将覆盖当前所有数据，是否继续？')) return;
+
     try {
       const text = await file.text();
-      await importAllData(text);
-      showToast('数据已恢复');
-      renderHome();
+      const count = await importAllData(text);
+      showToast(`成功导入 ${count} 条记录`);
+      await refreshData();
     } catch (e) {
       showToast('导入失败，请检查文件格式');
     }
+    importFile.value = '';
   });
 }
 
@@ -215,12 +228,12 @@ async function loadDayRecords() {
   const readonly = !isToday(currentDate);
   const readonlyClass = readonly ? 'readonly' : '';
 
-  // Load feeding records
-  const feedings = await db.feeding.where('date').equals(currentDate).sortBy('createdAt');
-  const diapers = await db.diaper.where('date').equals(currentDate).sortBy('createdAt');
-  const sleeps = await db.sleep.where('date').equals(currentDate).sortBy('createdAt');
-  const educations = await db.education.where('date').equals(currentDate).sortBy('createdAt');
-  const dailyNotes = await db.dailyNote.where('date').equals(currentDate).toArray();
+  // Load records via API
+  const feedings = await feeding.list(currentDate);
+  const diapers = await diaper.list(currentDate);
+  const sleeps = await sleep.list(currentDate);
+  const educations = await education.list(currentDate);
+  const dailyNotes = await dailyNote.get(currentDate);
 
   let html = '';
 
@@ -306,9 +319,12 @@ async function loadDayRecords() {
     html += `<div class="record-list"><h3>🎓 早教锻炼</h3>`;
     for (const e of educations) {
       html += `
-        <div class="record-item ${readonlyClass}">
-          <span class="record-time">${e.category}</span>
-          <span class="record-detail">${e.duration}分钟 ${e.content || ''}</span>
+        <div class="record-item compact-record ${readonlyClass}">
+          <div class="tag-row">
+            <span class="tag tag-purple">${e.category}</span>
+            <span class="tag tag-blue">${e.duration}min</span>
+            ${e.content ? `<span class="tag tag-gray">${e.content}</span>` : ''}
+          </div>
           <div class="record-actions">
             <button class="btn-delete" data-table="education" data-id="${e.id}">✕</button>
           </div>
@@ -318,8 +334,8 @@ async function loadDayRecords() {
   }
 
   // Daily note
-  if (dailyNotes.length > 0) {
-    const n = dailyNotes[0];
+  if (dailyNotes) {
+    const n = dailyNotes;
     html += `<div class="record-list"><h3>📝 今日小记</h3>`;
     html += `<div class="card">`;
     if (n.temperature) html += `<p>🌡️ 体温: ${n.temperature}°C</p>`;
@@ -328,7 +344,7 @@ async function loadDayRecords() {
     html += `</div></div>`;
   }
 
-  if (!feedings.length && !diapers.length && !sleeps.length && !educations.length && !dailyNotes.length) {
+  if (!feedings.length && !diapers.length && !sleeps.length && !educations.length && !dailyNotes) {
     if (readonly) {
       html += `<p class="empty-state">暂无记录</p>`;
     }
@@ -339,12 +355,16 @@ async function loadDayRecords() {
   // Bind delete buttons
   if (!readonly) {
     container.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const el = e.currentTarget as HTMLElement;
+      btn.addEventListener('click', async (ev) => {
+        const el = ev.currentTarget as HTMLElement;
         const table = el.dataset.table!;
         const id = Number(el.dataset.id);
         if (!confirm('确认删除？')) return;
-        await (db as any)[table].delete(id);
+
+        const tableMap: Record<string, { remove: (id: number) => Promise<void> }> = {
+          feeding, diaper, sleep, education,
+        };
+        await tableMap[table].remove(id);
         showToast('已删除');
         await loadStats();
         await loadDayRecords();

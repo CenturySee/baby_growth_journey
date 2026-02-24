@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-    # Uncomment to use HTTPS via a reverse proxy like Nginx Proxy Manager or Traefik
-    # environment:
-    #   - VIRTUAL_HOST=your-domain.com
+    volumes:
+      - baby_data:/app/data
+
+volumes:
+  baby_data:

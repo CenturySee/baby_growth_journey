@@ -1,28 +1,28 @@
-import { db, type CareRecord } from '../db';
+import { care } from '../api';
 import { getToday, showToast, getApp, renderPageHeader } from '../utils';
 
 const CARE_ITEMS = [
-    { key: '洗脸', emoji: '🧼' },
-    { key: '鼻腔清洁', emoji: '👃' },
-    { key: '洗手', emoji: '🤲' },
-    { key: '保湿', emoji: '💧' },
-    { key: '洗澡', emoji: '🛁' },
-    { key: '剪指甲', emoji: '✂️' },
-    { key: '口腔清洁', emoji: '🦷' },
+  { key: '洗脸', emoji: '🧼' },
+  { key: '鼻腔清洁', emoji: '👃' },
+  { key: '洗手', emoji: '🤲' },
+  { key: '保湿', emoji: '💧' },
+  { key: '洗澡', emoji: '🛁' },
+  { key: '剪指甲', emoji: '✂️' },
+  { key: '口腔清洁', emoji: '🦷' },
 ];
 
 export async function renderCare() {
-    const app = getApp();
-    const today = getToday();
+  const app = getApp();
+  const today = getToday();
 
-    // Load existing
-    let existing = await db.care.where('date').equals(today).first();
-    let items: Record<string, boolean> = {};
-    for (const c of CARE_ITEMS) {
-        items[c.key] = existing?.items[c.key] || false;
-    }
+  // Load existing
+  const existing = await care.get(today);
+  let items: Record<string, boolean> = {};
+  for (const c of CARE_ITEMS) {
+    items[c.key] = existing?.items[c.key] || false;
+  }
 
-    app.innerHTML = `
+  app.innerHTML = `
     ${renderPageHeader('护理记录', '🧴')}
 
     <div class="card">
@@ -40,30 +40,20 @@ export async function renderCare() {
     <button class="btn btn-save btn-full" id="saveBtn">✅ 保存</button>
   `;
 
-    // Toggle items
-    document.querySelectorAll('.care-item').forEach(el => {
-        el.addEventListener('click', () => {
-            const key = (el as HTMLElement).dataset.key!;
-            items[key] = !items[key];
-            el.classList.toggle('checked');
-            const icon = el.querySelector('.check-icon')!;
-            icon.textContent = items[key] ? '✓' : '';
-        });
+  // Toggle items
+  document.querySelectorAll('.care-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const key = (el as HTMLElement).dataset.key!;
+      items[key] = !items[key];
+      el.classList.toggle('checked');
+      const icon = el.querySelector('.check-icon')!;
+      icon.textContent = items[key] ? '✓' : '';
     });
+  });
 
-    // Save
-    document.getElementById('saveBtn')?.addEventListener('click', async () => {
-        if (existing) {
-            await db.care.update(existing.id!, { items: { ...items } });
-        } else {
-            const record: CareRecord = {
-                date: today,
-                items: { ...items },
-                createdAt: Date.now(),
-            };
-            await db.care.add(record);
-            existing = await db.care.where('date').equals(today).first();
-        }
-        showToast('护理记录已保存 ✅');
-    });
+  // Save
+  document.getElementById('saveBtn')?.addEventListener('click', async () => {
+    await care.save(today, { ...items });
+    showToast('护理记录已保存 ✅');
+  });
 }

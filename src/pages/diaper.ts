@@ -1,4 +1,4 @@
-import { db, type DiaperRecord } from '../db';
+import { diaper, type DiaperRecord } from '../api';
 import { getToday, getNowTime, showToast, getApp, renderPageHeader } from '../utils';
 
 // Color options per type
@@ -152,7 +152,7 @@ export async function renderDiaper() {
       createdAt: Date.now(),
     };
 
-    await db.diaper.add(record);
+    await diaper.add(record);
     showToast('尿布记录已保存 ✅');
     (document.getElementById('diaperTime') as HTMLInputElement).value = getNowTime();
     (document.getElementById('diaperNote') as HTMLInputElement).value = '';
@@ -248,7 +248,7 @@ async function loadDiaperList(date: string) {
   const container = document.getElementById('listContent');
   if (!container) return;
 
-  const records = await db.diaper.where('date').equals(date).sortBy('createdAt');
+  const records = await diaper.list(date);
 
   if (records.length === 0) {
     container.innerHTML = `<p class="empty-state">暂无记录</p>`;
@@ -294,7 +294,7 @@ async function loadDiaperList(date: string) {
     btn.addEventListener('click', async (e) => {
       const id = Number((e.currentTarget as HTMLElement).dataset.id);
       if (!confirm('确认删除？')) return;
-      await db.diaper.delete(id);
+      await diaper.remove(id);
       showToast('已删除');
       await loadDiaperList(date);
     });

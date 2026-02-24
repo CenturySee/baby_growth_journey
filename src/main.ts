@@ -1,5 +1,7 @@
 import './style.css';
-import { registerRoute, startRouter } from './router';
+import { registerRoute, startRouter, navigate } from './router';
+import { getFamilyCode } from './api';
+import { renderLogin } from './pages/login';
 import { renderHome } from './pages/home';
 import { renderFeeding } from './pages/feeding';
 import { renderDiaper } from './pages/diaper';
@@ -10,7 +12,15 @@ import { renderCare } from './pages/care';
 import { renderDailyNote } from './pages/dailyNote';
 
 // Register all routes
-registerRoute('/', renderHome);
+registerRoute('/login', renderLogin);
+registerRoute('/', () => {
+    // Auth check: redirect to login if no family code
+    if (!getFamilyCode()) {
+        navigate('/login');
+        return;
+    }
+    renderHome();
+});
 registerRoute('/feeding', renderFeeding);
 registerRoute('/diaper', renderDiaper);
 registerRoute('/supplement', renderSupplement);
