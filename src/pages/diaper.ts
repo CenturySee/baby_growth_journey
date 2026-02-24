@@ -1,5 +1,5 @@
 import { diaper, type DiaperRecord } from '../api';
-import { getToday, getNowTime, showToast, getApp, renderPageHeader } from '../utils';
+import { getToday, showToast, getApp, renderPageHeader, getNowFloored, renderTimeSelector, getTimeFromSelectors, resetTimeSelector } from '../utils';
 
 // Color options per type
 const PEE_COLORS = [
@@ -35,14 +35,13 @@ export async function renderDiaper() {
 
   let currentType = 'pee';
 
+  const now = getNowFloored();
+
   app.innerHTML = `
     ${renderPageHeader('尿布情况', '🧷')}
 
     <div class="card">
-      <div class="form-group">
-        <label>⏰ 时间</label>
-        <input type="time" id="diaperTime" value="${getNowTime()}" />
-      </div>
+      ${renderTimeSelector('diaperTime', '⏰ 时间', now)}
 
       <div class="form-group">
         <label>类型</label>
@@ -141,9 +140,12 @@ export async function renderDiaper() {
 
   // Save
   document.getElementById('saveBtn')?.addEventListener('click', async () => {
+    const time = getTimeFromSelectors('diaperTime');
+    if (!time) { showToast('请选择时间'); return; }
+
     const record: DiaperRecord = {
       date: today,
-      time: (document.getElementById('diaperTime') as HTMLInputElement).value,
+      time,
       type: getToggleValue('diaperType') as 'pee' | 'poop' | 'both',
       color: getToggleValue('diaperColor'),
       amount: getToggleValue('diaperAmount'),
@@ -154,7 +156,7 @@ export async function renderDiaper() {
 
     await diaper.add(record);
     showToast('尿布记录已保存 ✅');
-    (document.getElementById('diaperTime') as HTMLInputElement).value = getNowTime();
+    resetTimeSelector('diaperTime', getNowFloored());
     (document.getElementById('diaperNote') as HTMLInputElement).value = '';
 
     // Reset image

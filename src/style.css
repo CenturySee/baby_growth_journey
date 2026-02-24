@@ -978,11 +978,11 @@ select {
 }
 
 .time-select {
-  width: 52px;
-  padding: 8px 4px;
+  width: 42px;
+  padding: 6px 4px;
   border: 2px solid #e0e0e0;
-  border-radius: var(--radius-md);
-  font-size: 18px;
+  border-radius: 10px;
+  font-size: 16px;
   font-weight: 700;
   text-align: center;
   background: white;

@@ -1,18 +1,16 @@
 import { feeding, type FeedingRecord } from '../api';
-import { getToday, getNowTime, showToast, getApp, renderPageHeader } from '../utils';
+import { getToday, showToast, getApp, renderPageHeader, getNowFloored, renderTimeSelector, getTimeFromSelectors, resetTimeSelector } from '../utils';
 
 export async function renderFeeding() {
   const app = getApp();
   const today = getToday();
+  const now = getNowFloored();
 
   app.innerHTML = `
     ${renderPageHeader('喂养记录', '🍼')}
 
     <div class="card">
-      <div class="form-group">
-        <label>⏰ 时间</label>
-        <input type="time" id="feedTime" value="${getNowTime()}" />
-      </div>
+      ${renderTimeSelector('feedTime', '⏰ 时间', now)}
 
       <h3>🤱 亲喂</h3>
       <div class="inline-row">
@@ -49,9 +47,12 @@ export async function renderFeeding() {
 
   // Save handler
   document.getElementById('saveBtn')?.addEventListener('click', async () => {
+    const time = getTimeFromSelectors('feedTime');
+    if (!time) { showToast('请选择时间'); return; }
+
     const record: FeedingRecord = {
       date: today,
-      time: (document.getElementById('feedTime') as HTMLInputElement).value,
+      time,
       breastLeft: Number((document.getElementById('breastLeft') as HTMLInputElement).value) || 0,
       breastRight: Number((document.getElementById('breastRight') as HTMLInputElement).value) || 0,
       bottleBreastMilk: Number((document.getElementById('bottleBM') as HTMLInputElement).value) || 0,
@@ -63,7 +64,7 @@ export async function renderFeeding() {
     showToast('喂养记录已保存 ✅');
 
     // Reset form
-    (document.getElementById('feedTime') as HTMLInputElement).value = getNowTime();
+    resetTimeSelector('feedTime', getNowFloored());
     (document.getElementById('breastLeft') as HTMLInputElement).value = '0';
     (document.getElementById('breastRight') as HTMLInputElement).value = '0';
     (document.getElementById('bottleBM') as HTMLInputElement).value = '0';

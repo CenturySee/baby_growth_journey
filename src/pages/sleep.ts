@@ -1,47 +1,10 @@
 import { sleep, type SleepRecord } from '../api';
-import { getToday, showToast, getApp, renderPageHeader } from '../utils';
-
-function buildHourOptions(selected?: number): string {
-  let html = '';
-  for (let h = 0; h < 24; h++) {
-    const label = String(h).padStart(2, '0');
-    html += `<option value="${h}" ${h === selected ? 'selected' : ''}>${label}</option>`;
-  }
-  return html;
-}
-
-function buildMinuteOptions(selected?: number): string {
-  const mins = [0, 15, 30, 45];
-  let html = '';
-  for (const m of mins) {
-    const label = String(m).padStart(2, '0');
-    html += `<option value="${m}" ${m === selected ? 'selected' : ''}>${label}</option>`;
-  }
-  return html;
-}
-
-function getNowRounded(): { hour: number; minute: number } {
-  const d = new Date();
-  const mins = [0, 15, 30, 45];
-  const raw = d.getMinutes();
-  // Round to nearest 15
-  const nearest = mins.reduce((prev, curr) => Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev);
-  let hour = d.getHours();
-  if (nearest === 0 && raw > 45) hour = (hour + 1) % 24; // rolled over
-  return { hour, minute: nearest };
-}
-
-function getTimeFromSelectors(prefix: string): string {
-  const h = (document.getElementById(`${prefix}H`) as HTMLSelectElement).value;
-  const m = (document.getElementById(`${prefix}M`) as HTMLSelectElement).value;
-  if (h === '' || m === '') return '';
-  return `${String(Number(h)).padStart(2, '0')}:${String(Number(m)).padStart(2, '0')}`;
-}
+import { getToday, showToast, getApp, renderPageHeader, getNowFloored, buildHourOptions, buildMinuteOptions, getTimeFromSelectors, resetTimeSelector } from '../utils';
 
 export async function renderSleep() {
   const app = getApp();
   const today = getToday();
-  const now = getNowRounded();
+  const now = getNowFloored();
 
   app.innerHTML = `
     ${renderPageHeader('睡眠记录', '😴')}
@@ -114,11 +77,8 @@ export async function renderSleep() {
     showToast('睡眠记录已保存 ✅');
 
     // Reset: clear start, refresh end to now
-    (document.getElementById('startH') as HTMLSelectElement).value = '';
-    (document.getElementById('startM') as HTMLSelectElement).value = '';
-    const nowAgain = getNowRounded();
-    (document.getElementById('endH') as HTMLSelectElement).value = String(nowAgain.hour);
-    (document.getElementById('endM') as HTMLSelectElement).value = String(nowAgain.minute);
+    resetTimeSelector('start');
+    resetTimeSelector('end', getNowFloored());
 
     await loadSleepList(today);
   });
