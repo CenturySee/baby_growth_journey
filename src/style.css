@@ -858,8 +858,15 @@ select {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .login-page h1 {
@@ -921,6 +928,80 @@ select {
 
 .family-code-bar strong {
   letter-spacing: 2px;
+}
+
+/* ---- Sleep Time Picker ---- */
+.sleep-time-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--spacing);
+}
+
+.time-block {
+  flex: 1;
+  padding: 12px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.time-block-sleep {
+  background: #EDE7F6;
+  border: 2px solid #B39DDB;
+}
+
+.time-block-wake {
+  background: #FFF8E1;
+  border: 2px solid #FFD54F;
+}
+
+.time-block-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.time-arrow {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+/* ---- Time Select Dropdowns ---- */
+.time-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.time-select {
+  width: 52px;
+  padding: 8px 4px;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--radius-md);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  background: white;
+  color: var(--color-text);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.time-select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.time-colon {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
 }
 
 /* ---- Responsive ---- */
